@@ -332,7 +332,7 @@ const s_url = 'https://gqisjvyjdbtxzbvylmwh.supabase.co';
 const s_anon='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzEzMTcyNjMyLCJleHAiOjIwMjg3NDg2MzJ9.y9D8C-V-_f-9-s-O-V-G-v-x_B-X-t-F_a_Z_Q_R_P2M'; // Oh wait, the user pasted the anon key in text! Let me look at the chat text.
 // "Anon Key (Legacy): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg"
 
-const supabase = supabase.createClient('https://gqisjvyjdbtxzbvylmwh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg');
+const supabaseClient = supabase.createClient('https://gqisjvyjdbtxzbvylmwh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg');
 
 const STORAGE_PREFIX='rdHub_';
 let state={apps:[],categories:[],activeFilter:'all',currentPage:'dashboard',ghUsername:'rd799',lastSync:null,vaultKey:null,passwords:[]};
@@ -368,7 +368,7 @@ toast('✅ Đã lưu cài đặt');
 async function fetchData() {
   try {
     // 1. Lấy danh mục từ Supabase
-    let { data: cats, error: errCats } = await supabase.from('categories').select('*');
+    let { data: cats, error: errCats } = await supabaseClient.from('categories').select('*');
     if(errCats) throw errCats;
     // Nếu chưa có thư mục nào, tạo thư mục cơ bản
     if (!cats || cats.length === 0) {
@@ -376,7 +376,7 @@ async function fetchData() {
         {name: '💰 Báo giá'}, {name: '📋 Quản lý'}, {name: '📁 Tài liệu'},
         {name: '🏭 Sản xuất'}, {name: '📊 Dự án'}, {name: '🤖 AI/KB'}, {name: '🔧 Khác'}
       ];
-      const { data: newCats, error: errNew } = await supabase.from('categories').insert(defaultCats).select();
+      const { data: newCats, error: errNew } = await supabaseClient.from('categories').insert(defaultCats).select();
       if(!errNew) cats = newCats;
     }
     state.categories = cats || [];
@@ -386,7 +386,7 @@ async function fetchData() {
     document.getElementById('customAppCat').innerHTML = catHtml;
 
     // 2. Lấy danh sách Apps từ Supabase
-    let { data: apps, error: errApps } = await supabase.from('apps').select(`*, categories(name)`);
+    let { data: apps, error: errApps } = await supabaseClient.from('apps').select(`*, categories(name)`);
     if(errApps) throw errApps;
     
     state.apps = (apps || []).map(a => ({
@@ -441,7 +441,7 @@ try{
             };
             
             // Insert to Supabase
-            const { data, error } = await supabase.from('apps').insert([newApp]).select(`*, categories(name)`);
+            const { data, error } = await supabaseClient.from('apps').insert([newApp]).select(`*, categories(name)`);
             if (error) console.error(error);
             else if (data && data.length > 0) {
                 state.apps.push({...data[0], cat: data[0].categories ? data[0].categories.name : catName});
@@ -548,10 +548,10 @@ async function saveCategory() {
     document.getElementById('btnSaveCat').textContent = '⏳...';
     try {
         if (editCatId) {
-            await supabase.from('categories').update({ name }).eq('id', editCatId);
+            await supabaseClient.from('categories').update({ name }).eq('id', editCatId);
             toast('✅ Đã cập nhật danh mục');
         } else {
-            await supabase.from('categories').insert([{ name }]);
+            await supabaseClient.from('categories').insert([{ name }]);
             toast('✅ Đã thêm danh mục mới');
         }
         await fetchData();
@@ -566,9 +566,9 @@ async function deleteCategory(id) {
     if(!confirm('Xoá danh mục này? Các app thuộc danh mục sẽ bị mất phân nhóm.')) return;
     try {
         // Reset category of apps
-        await supabase.from('apps').update({ category_id: null }).eq('category_id', id);
+        await supabaseClient.from('apps').update({ category_id: null }).eq('category_id', id);
         // Delete category
-        await supabase.from('categories').delete().eq('id', id);
+        await supabaseClient.from('categories').delete().eq('id', id);
         toast('🗑️ Đã xoá danh mục');
         await fetchData();
     } catch(err) {
@@ -750,14 +750,14 @@ btn.textContent = '⏳ Đang lưu...';
 try {
     if (editAppId) {
         // Update existing
-        const { error } = await supabase.from('apps').update({
+        const { error } = await supabaseClient.from('apps').update({
             name, url, description, icon, category_id: catId
         }).eq('id', editAppId);
         if (error) throw error;
         toast('✅ Đã cập nhật '+name);
     } else {
         // Insert new
-        const { error } = await supabase.from('apps').insert([{
+        const { error } = await supabaseClient.from('apps').insert([{
             name, url, description, icon, category_id: catId, source: 'custom'
         }]);
         if (error) throw error;
@@ -775,7 +775,7 @@ btn.textContent = '💾 Lưu';
 async function deleteApp(id) {
     if(!confirm('Xoá ứng dụng này khỏi danh sách?')) return;
     try {
-        await supabase.from('apps').delete().eq('id', id);
+        await supabaseClient.from('apps').delete().eq('id', id);
         toast('🗑️ Đã xoá ứng dụng');
         await fetchData();
     } catch(err) {
