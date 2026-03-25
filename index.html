@@ -198,7 +198,7 @@ input{font-family:inherit;color:inherit}
 <!-- HEADER -->
 <header class="header">
 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-<div class="search-box"><input type="text" id="searchInput" placeholder="Tìm kiếm ứng dụng..." oninput="filterApps()"></div>
+<div class="search-box"><input type="text" id="searchInput" autocomplete="off" placeholder="Tìm kiếm ứng dụng..." oninput="filterApps()"></div>
 <div class="header-actions">
 <button class="btn-sync" id="btnSync" onclick="fullSync()">🔄 Sync</button>
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
@@ -252,11 +252,14 @@ input{font-family:inherit;color:inherit}
 <div class="lock-icon">🔒</div>
 <h2>Password Vault</h2>
 <p>Nhập master password để mở kho mật khẩu</p>
-<div class="vault-input-group"><input type="password" id="masterPwdInput" placeholder="Master password..." onkeydown="if(event.key==='Enter')unlockVault()"><button onclick="unlockVault()">🔓 Mở</button></div>
-<p style="margin-top:16px;font-size:12px;color:var(--text2)">Lần đầu? Nhập password bạn muốn đặt làm master password</p>
+<div class="vault-input-group"><input type="password" id="masterPwdInput" placeholder="Master password..." autocomplete="new-password" onkeydown="if(event.key==='Enter')unlockVault()"><button onclick="unlockVault()">🔓 Mở</button></div>
+<p style="margin-top:16px;font-size:12px;color:var(--text2)">
+    Lần đầu? Nhập password bạn muốn đặt làm master password<br><br>
+    <a href="mailto:rd@nsca.vn?subject=Quên%20mật%20khẩu%20Vault" style="color:var(--accent);text-decoration:underline">Quên mật khẩu? (Gởi email hỗ trợ)</a>
+</p>
 </div>
 <div id="vaultUnlocked" style="display:none">
-<div class="section-header"><h2>🔐 Password Vault</h2><div style="display:flex;gap:8px"><button class="btn-sync" onclick="showAddPwdForm()">➕ Thêm</button><button class="btn-sync" onclick="lockVault()" style="background:var(--card);border:1px solid var(--card-border)">🔒 Khóa</button></div></div>
+<div class="section-header"><h2>🔐 Password Vault</h2><div style="display:flex;gap:8px"><button class="btn-sync" onclick="changeMasterPwd()" style="background:var(--card);border:1px solid var(--card-border)">🔄 Đổi</button><button class="btn-sync" onclick="showAddPwdForm()">➕ Thêm</button><button class="btn-sync" onclick="lockVault()" style="background:var(--card);border:1px solid var(--card-border)">🔒 Khóa</button></div></div>
 <div id="addPwdForm" class="add-pwd-form" style="display:none">
 <h3>➕ Thêm mật khẩu mới</h3>
 <div class="form-row"><input type="text" id="pwdAppName" placeholder="Tên ứng dụng"><input type="text" id="pwdUsername" placeholder="Tên đăng nhập"></div>
@@ -679,6 +682,14 @@ state.vaultKey=null;state.passwords=[];
 document.getElementById('vaultLocked').style.display='block';
 document.getElementById('vaultUnlocked').style.display='none';
 document.getElementById('masterPwdInput').value='';
+}
+
+async function changeMasterPwd(){
+const newPwd=prompt('Nhập master password mới (để trống nếu huỷ):');
+if(!newPwd)return;
+state.vaultKey=newPwd;
+await saveVault();
+toast('✅ Đã đổi master password thành công');
 }
 
 async function saveVault(){
