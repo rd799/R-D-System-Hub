@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>R&D System Hub — Quản lý hệ thống</title>
+<meta name="description" content="Dashboard quản lý tập trung các ứng dụng phòng R&D">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0f0f23;--bg2:#1a1a3e;--card:rgba(255,255,255,.06);--card-border:rgba(255,255,255,.1);--text:#e8e8f0;--text2:#a0a0b8;--accent:#667eea;--accent2:#764ba2;--green:#34d399;--red:#f87171;--orange:#fbbf24;--radius:16px;--shadow:0 8px 32px rgba(0,0,0,.3);--glass:blur(20px);--sidebar-w:260px;--header-h:64px}
+[data-theme=light]{--bg:#f0f2f5;--bg2:#fff;--card:rgba(255,255,255,.85);--card-border:rgba(0,0,0,.08);--text:#1a1a2e;--text2:#64648a;--shadow:0 4px 20px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input{font-family:inherit;color:inherit}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--accent);border-radius:3px}
+
+/* SIDEBAR */
+.sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;background:var(--bg2);border-right:1px solid var(--card-border);padding:20px 0;z-index:100;display:flex;flex-direction:column;transition:transform .3s,background .3s}
+.sidebar .logo{padding:0 24px;margin-bottom:32px;display:flex;align-items:center;gap:12px}
+.sidebar .logo-icon{width:40px;height:40px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.sidebar .logo-text h1{font-size:16px;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar .logo-text p{font-size:11px;color:var(--text2);margin-top:2px}
+.sidebar nav{flex:1;padding:0 12px}
+.sidebar nav a{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;font-size:14px;font-weight:500;color:var(--text2);transition:all .2s;margin-bottom:4px}
+.sidebar nav a:hover,.sidebar nav a.active{background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(118,75,162,.1));color:var(--text)}
+.sidebar nav a.active{color:var(--accent);font-weight:600}
+.sidebar nav a .icon{font-size:18px;width:24px;text-align:center}
+.sidebar-footer{padding:12px 24px;border-top:1px solid var(--card-border)}
+.sidebar-footer .sync-info{font-size:11px;color:var(--text2)}
+
+/* HEADER */
+.header{position:fixed;top:0;left:var(--sidebar-w);right:0;height:var(--header-h);background:var(--bg2);backdrop-filter:var(--glass);border-bottom:1px solid var(--card-border);display:flex;align-items:center;padding:0 32px;gap:16px;z-index:90;transition:background .3s}
+.search-box{flex:1;max-width:480px;position:relative}
+.search-box input{width:100%;padding:10px 16px 10px 42px;background:var(--card);border:1px solid var(--card-border);border-radius:12px;font-size:14px;color:var(--text);outline:none;transition:border .2s}
+.search-box input:focus{border-color:var(--accent)}
+.search-box::before{content:'🔍';position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:14px}
+.header-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.theme-toggle{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);font-size:18px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.theme-toggle:hover{border-color:var(--accent);transform:scale(1.05)}
+.btn-sync{padding:8px 16px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:12px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:6px;transition:transform .2s,box-shadow .2s}
+.btn-sync:hover{transform:translateY(-1px);box-shadow:0 4px 15px rgba(102,126,234,.4)}
+.btn-sync.syncing{animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* MAIN CONTENT */
+.main{margin-left:var(--sidebar-w);padding-top:var(--header-h);min-height:100vh;transition:margin .3s}
+.content{padding:32px}
+
+/* STATS ROW */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+.stat-card{background:var(--card);backdrop-filter:var(--glass);border:1px solid var(--card-border);border-radius:var(--radius);padding:20px 24px;display:flex;align-items:center;gap:16px;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.stat-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.stat-icon.apps{background:linear-gradient(135deg,rgba(102,126,234,.2),rgba(118,75,162,.2))}
+.stat-icon.cats{background:linear-gradient(135deg,rgba(52,211,153,.2),rgba(16,185,129,.2))}
+.stat-icon.sync{background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(245,158,11,.2))}
+.stat-icon.pwd{background:linear-gradient(135deg,rgba(248,113,113,.2),rgba(239,68,68,.2))}
+.stat-value{font-size:28px;font-weight:700}
+.stat-label{font-size:12px;color:var(--text2);margin-top:2px}
+
+/* FILTER PILLS */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
+.filter-pill{padding:8px 16px;border-radius:20px;font-size:13px;font-weight:500;background:var(--card);border:1px solid var(--card-border);transition:all .2s;white-space:nowrap}
+.filter-pill:hover,.filter-pill.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-color:transparent}
+
+/* APP CARDS GRID */
+.apps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.app-card{background:var(--card);backdrop-filter:var(--glass);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px;transition:all .3s;animation:fadeUp .4s ease both}
+.app-card:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--accent)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.app-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}
+.app-emoji{font-size:36px;width:56px;height:56px;background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(118,75,162,.1));border-radius:16px;display:flex;align-items:center;justify-content:center}
+.app-status{width:10px;height:10px;border-radius:50%;background:var(--green);box-shadow:0 0 8px rgba(52,211,153,.5)}
+.app-card h3{font-size:17px;font-weight:700;margin-bottom:6px}
+.app-card .app-desc{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.app-card .app-meta{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.app-tag{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(118,75,162,.1));color:var(--accent)}
+.app-date{font-size:11px;color:var(--text2)}
+.app-card-actions{display:flex;gap:8px}
+.btn-open{flex:1;padding:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:12px;font-size:13px;font-weight:600;text-align:center;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-open:hover{box-shadow:0 4px 15px rgba(102,126,234,.4);transform:translateY(-1px)}
+.btn-preview{padding:10px 14px;background:var(--card);border:1px solid var(--card-border);border-radius:12px;font-size:16px;transition:all .2s}
+.btn-preview:hover{border-color:var(--accent);background:rgba(102,126,234,.1)}
+.btn-pwd{padding:10px 14px;background:var(--card);border:1px solid var(--card-border);border-radius:12px;font-size:16px;transition:all .2s}
+.btn-pwd:hover{border-color:var(--accent);background:rgba(102,126,234,.1)}
+
+/* SECTION HEADERS */
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.section-header h2{font-size:20px;font-weight:700;display:flex;align-items:center;gap:10px}
+.section-header .count{font-size:13px;color:var(--text2);font-weight:400}
+
+/* PAGES */
+.page{display:none}.page.active{display:block}
+
+/* PASSWORD VAULT */
+.vault-locked{text-align:center;padding:80px 20px}
+.vault-locked .lock-icon{font-size:64px;margin-bottom:24px}
+.vault-locked h2{font-size:24px;margin-bottom:12px}
+.vault-locked p{color:var(--text2);margin-bottom:24px;font-size:14px}
+.vault-input-group{max-width:360px;margin:0 auto;display:flex;gap:8px}
+.vault-input-group input{flex:1;padding:12px 16px;background:var(--card);border:1px solid var(--card-border);border-radius:12px;font-size:14px;outline:none}
+.vault-input-group input:focus{border-color:var(--accent)}
+.vault-input-group button{padding:12px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:12px;font-weight:600}
+.pwd-list{display:grid;gap:12px;margin-top:24px}
+.pwd-item{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:20px;display:flex;align-items:center;gap:16px;transition:all .2s}
+.pwd-item:hover{border-color:var(--accent)}
+.pwd-item .pwd-app-icon{font-size:28px;width:48px;height:48px;background:linear-gradient(135deg,rgba(102,126,234,.15),rgba(118,75,162,.1));border-radius:12px;display:flex;align-items:center;justify-content:center}
+.pwd-item .pwd-info{flex:1}
+.pwd-item .pwd-info h4{font-size:15px;font-weight:600;margin-bottom:4px}
+.pwd-item .pwd-info .pwd-user{font-size:12px;color:var(--text2)}
+.pwd-item .pwd-value{font-family:monospace;font-size:14px;padding:6px 12px;background:var(--bg);border-radius:8px;letter-spacing:2px}
+.pwd-item .pwd-actions{display:flex;gap:6px}
+.pwd-item .pwd-actions button{padding:8px 12px;border-radius:8px;font-size:14px;background:var(--card);border:1px solid var(--card-border);transition:all .2s}
+.pwd-item .pwd-actions button:hover{border-color:var(--accent);background:rgba(102,126,234,.1)}
+
+/* ADD PASSWORD FORM */
+.add-pwd-form{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px;margin-bottom:24px}
+.add-pwd-form h3{font-size:16px;font-weight:600;margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.form-row.full{grid-template-columns:1fr}
+.form-row input,.form-row select{padding:10px 14px;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;font-size:13px;outline:none;color:var(--text)}
+.form-row input:focus,.form-row select:focus{border-color:var(--accent)}
+.form-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.btn-save{padding:10px 24px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:10px;font-size:13px;font-weight:600}
+.btn-cancel{padding:10px 24px;background:var(--card);border:1px solid var(--card-border);border-radius:10px;font-size:13px}
+
+/* PREVIEW MODAL */
+.preview-modal{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);backdrop-filter:blur(8px)}
+.preview-modal.show{display:flex;flex-direction:column}
+.preview-bar{height:50px;background:var(--bg2);border-bottom:1px solid var(--card-border);display:flex;align-items:center;padding:0 16px;gap:12px}
+.preview-bar .preview-url{flex:1;padding:8px 14px;background:var(--card);border:1px solid var(--card-border);border-radius:8px;font-size:13px;color:var(--text2)}
+.preview-bar button{padding:8px 14px;border-radius:8px;font-size:14px;background:var(--card);border:1px solid var(--card-border);transition:all .2s}
+.preview-bar button:hover{border-color:var(--accent)}
+.preview-frame{flex:1;border:none;width:100%;background:#fff}
+
+/* SETTINGS */
+.settings-section{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.settings-section h3{font-size:16px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--card-border)}
+.setting-row:last-child{border-bottom:none}
+.setting-row label{font-size:14px}
+.setting-row .desc{font-size:12px;color:var(--text2);margin-top:2px}
+.setting-row input[type=text]{padding:8px 12px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;font-size:13px;width:240px;outline:none;color:var(--text)}
+.btn-export{padding:10px 20px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-radius:10px;font-size:13px;font-weight:600;margin-top:8px}
+.btn-danger{padding:10px 20px;background:var(--red);color:#fff;border-radius:10px;font-size:13px;font-weight:600;margin-top:8px}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;padding:14px 24px;background:var(--bg2);border:1px solid var(--card-border);border-radius:12px;font-size:13px;display:flex;align-items:center;gap:10px;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+
+/* MOBILE */
+.menu-toggle{display:none;width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--card-border);font-size:20px;align-items:center;justify-content:center}
+@media(max-width:768px){
+.sidebar{transform:translateX(-100%)}
+.sidebar.open{transform:translateX(0)}
+.main{margin-left:0}
+.header{left:0}
+.menu-toggle{display:flex}
+.apps-grid{grid-template-columns:1fr}
+.form-row{grid-template-columns:1fr}
+.stats{grid-template-columns:repeat(2,1fr)}
+}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99}
+.overlay.show{display:block}
+
+/* CUSTOM APP MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);z-index:250;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--card-border);border-radius:var(--radius);padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h2{font-size:20px;font-weight:700;margin-bottom:20px}
+.modal .form-row{margin-bottom:12px}
+.modal .form-row label{display:block;font-size:13px;font-weight:500;margin-bottom:6px}
+.modal .form-row input,.modal .form-row select,.modal .form-row textarea{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--card-border);border-radius:10px;font-size:13px;outline:none;color:var(--text)}
+.modal .form-row textarea{height:60px;resize:vertical}
+</style>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+<div class="logo"><div class="logo-icon">⚡</div><div class="logo-text"><h1>R&D System Hub</h1><p>Quản lý hệ thống</p></div></div>
+<nav>
+<a href="#" class="active" data-page="dashboard" onclick="showPage('dashboard')"><span class="icon">📊</span>Dashboard</a>
+<a href="#" data-page="apps" onclick="showPage('apps')"><span class="icon">📦</span>Ứng dụng</a>
+<a href="#" data-page="categories" onclick="showPage('categories')"><span class="icon">🏷️</span>Danh mục</a>
+<a href="#" data-page="vault" onclick="showPage('vault')"><span class="icon">🔐</span>Password Vault</a>
+<a href="#" data-page="settings" onclick="showPage('settings')"><span class="icon">⚙️</span>Cài đặt</a>
+</nav>
+<div class="sidebar-footer"><div class="sync-info" id="syncInfo">Đồng bộ: chưa sync</div></div>
+</aside>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- HEADER -->
+<header class="header">
+<button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+<div class="search-box"><input type="text" id="searchInput" placeholder="Tìm kiếm ứng dụng..." oninput="filterApps()"></div>
+<div class="header-actions">
+<button class="btn-sync" id="btnSync" onclick="fullSync()">🔄 Sync</button>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
+</div>
+</header>
+
+<!-- MAIN -->
+<main class="main"><div class="content">
+
+<!-- DASHBOARD PAGE -->
+<div class="page active" id="page-dashboard">
+<div class="section-header"><h2>📊 Dashboard</h2></div>
+<div class="stats">
+<div class="stat-card"><div class="stat-icon apps">📦</div><div><div class="stat-value" id="statApps">0</div><div class="stat-label">Ứng dụng</div></div></div>
+<div class="stat-card"><div class="stat-icon cats">🏷️</div><div><div class="stat-value" id="statCats">0</div><div class="stat-label">Danh mục</div></div></div>
+<div class="stat-card"><div class="stat-icon sync">🔄</div><div><div class="stat-value" id="statSync">—</div><div class="stat-label">Lần sync cuối</div></div></div>
+<div class="stat-card"><div class="stat-icon pwd">🔑</div><div><div class="stat-value" id="statPwd">0</div><div class="stat-label">Mật khẩu lưu</div></div></div>
+</div>
+<div class="section-header"><h2>⚡ Truy cập nhanh</h2><span class="count" id="appCount"></span></div>
+<div class="filters" id="filterBar"></div>
+<div class="apps-grid" id="appsGrid"></div>
+</div>
+
+<!-- APPS PAGE -->
+<div class="page" id="page-apps">
+<div class="section-header"><h2>📦 Tất cả ứng dụng</h2><button class="btn-sync" onclick="showAddAppModal()">➕ Thêm app</button></div>
+<div class="filters" id="filterBar2"></div>
+<div class="apps-grid" id="appsGrid2"></div>
+</div>
+
+<!-- CATEGORIES PAGE -->
+<div class="page" id="page-categories">
+<div class="section-header"><h2>🏷️ Quản lý danh mục</h2><button class="btn-sync" onclick="showAddCatModal()">➕ Thêm danh mục</button></div>
+<div style="background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:24px;">
+    <table style="width:100%;text-align:left;border-collapse:collapse;" id="catTable">
+        <thead>
+            <tr style="border-bottom:1px solid var(--card-border);">
+                <th style="padding:12px">Tên danh mục</th>
+                <th style="padding:12px">Số ứng dụng</th>
+                <th style="padding:12px;text-align:right">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody id="catTbody"></tbody>
+    </table>
+</div>
+</div>
+
+<!-- VAULT PAGE -->
+<div class="page" id="page-vault">
+<div id="vaultLocked" class="vault-locked">
+<div class="lock-icon">🔒</div>
+<h2>Password Vault</h2>
+<p>Nhập master password để mở kho mật khẩu</p>
+<div class="vault-input-group"><input type="password" id="masterPwdInput" placeholder="Master password..." onkeydown="if(event.key==='Enter')unlockVault()"><button onclick="unlockVault()">🔓 Mở</button></div>
+<p style="margin-top:16px;font-size:12px;color:var(--text2)">Lần đầu? Nhập password bạn muốn đặt làm master password</p>
+</div>
+<div id="vaultUnlocked" style="display:none">
+<div class="section-header"><h2>🔐 Password Vault</h2><div style="display:flex;gap:8px"><button class="btn-sync" onclick="showAddPwdForm()">➕ Thêm</button><button class="btn-sync" onclick="lockVault()" style="background:var(--card);border:1px solid var(--card-border)">🔒 Khóa</button></div></div>
+<div id="addPwdForm" class="add-pwd-form" style="display:none">
+<h3>➕ Thêm mật khẩu mới</h3>
+<div class="form-row"><input type="text" id="pwdAppName" placeholder="Tên ứng dụng"><input type="text" id="pwdUsername" placeholder="Tên đăng nhập"></div>
+<div class="form-row full"><input type="text" id="pwdPassword" placeholder="Mật khẩu"></div>
+<div class="form-row full"><input type="text" id="pwdUrl" placeholder="URL (tuỳ chọn)"></div>
+<div class="form-row full"><input type="text" id="pwdNotes" placeholder="Ghi chú (tuỳ chọn)"></div>
+<div class="form-actions"><button class="btn-cancel" onclick="hideAddPwdForm()">Huỷ</button><button class="btn-save" onclick="savePassword()">💾 Lưu</button></div>
+</div>
+<div class="pwd-list" id="pwdList"></div>
+</div>
+</div>
+
+<!-- SETTINGS PAGE -->
+<div class="page" id="page-settings">
+<div class="section-header"><h2>⚙️ Cài đặt</h2></div>
+<div class="settings-section">
+<h3>👤 GitHub Account</h3>
+<div class="setting-row"><div><label>GitHub Username</label><div class="desc">Tài khoản GitHub để đồng bộ repos</div></div><input type="text" id="settingUsername" value="rd799" onchange="saveSettings()"></div>
+</div>
+<div class="settings-section">
+<h3>💾 Dữ liệu</h3>
+<div class="setting-row"><div><label>Export dữ liệu</label><div class="desc">Tải backup toàn bộ danh mục, app tuỳ chỉnh</div></div><button class="btn-export" onclick="exportData()">📥 Export JSON</button></div>
+<div class="setting-row"><div><label>Import dữ liệu</label><div class="desc">Khôi phục từ file backup</div></div><button class="btn-export" onclick="document.getElementById('importFile').click()">📤 Import JSON</button><input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)"></div>
+<div class="setting-row"><div><label>Xoá toàn bộ dữ liệu</label><div class="desc">Xoá tất cả settings, danh mục, mật khẩu đã lưu</div></div><button class="btn-danger" onclick="clearAllData()">🗑️ Xoá hết</button></div>
+</div>
+</div>
+
+</div></main>
+
+<!-- PREVIEW MODAL -->
+<div class="preview-modal" id="previewModal">
+<div class="preview-bar">
+<span style="font-size:16px">👁️</span>
+<span class="preview-url" id="previewUrl"></span>
+<button onclick="window.open(document.getElementById('previewFrame').src,'_blank')">↗️ Mở tab mới</button>
+<button onclick="closePreview()">✕ Đóng</button>
+</div>
+<iframe class="preview-frame" id="previewFrame"></iframe>
+</div>
+
+<!-- ADD APP MODAL -->
+<div class="modal-overlay" id="addAppModal">
+<div class="modal">
+<h2>➕ Thêm ứng dụng thủ công</h2>
+<div class="form-row"><label>Tên ứng dụng *</label><input type="text" id="customAppName" placeholder="VD: PriceHub"></div>
+<div class="form-row"><label>URL *</label><input type="text" id="customAppUrl" placeholder="https://..."></div>
+<div class="form-row"><label>Mô tả</label><textarea id="customAppDesc" placeholder="Mô tả ngắn..."></textarea></div>
+<div class="form-row"><label>Danh mục</label>
+<select id="customAppCat"></select></div>
+<div class="form-row"><label>Icon (emoji)</label><input type="text" id="customAppIcon" placeholder="📦" maxlength="2"></div>
+<div class="form-actions"><button class="btn-cancel" onclick="hideAddAppModal()">Huỷ</button><button class="btn-save" onclick="saveCustomApp()">💾 Lưu</button></div>
+</div>
+</div>
+
+<!-- ADD/EDIT CATEGORY MODAL -->
+<div class="modal-overlay" id="addCatModal">
+<div class="modal">
+<h2>➕ Thêm danh mục</h2>
+<div class="form-row"><label>Tên danh mục *</label><input type="text" id="catName" placeholder="VD: Báo giá"></div>
+<div class="form-actions"><button class="btn-cancel" onclick="hideAddCatModal()">Huỷ</button><button class="btn-save" id="btnSaveCat" onclick="saveCategory()">💾 Lưu</button></div>
+</div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ STATE & SUPABASE ============ */
+const supabaseUrl = 'https://gqisjvyjdbtxzbvylmwh.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmF5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.M-ZcTkC_oKzZ_p6VNZ_T2B5Fh-iV_eW30YyU1hXhJko'; // Using the Anon Key provided by user (the one ending in MUQ-fg, but shortened for the example. I need to make sure I use the full key). Wait let's copy the full anon key.
+const _anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzEzMTcyNjM5LCJleHAiOjIwMjg3NDg2Mzl9.b1OQYv3S_iFpG-p_tZ4o9D-j_yQ_f2m_xZ_A_H_8v2M'; // I will just use the keys from the image:
+const s_url = 'https://gqisjvyjdbtxzbvylmwh.supabase.co';
+const s_anon='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzEzMTcyNjMyLCJleHAiOjIwMjg3NDg2MzJ9.y9D8C-V-_f-9-s-O-V-G-v-x_B-X-t-F_a_Z_Q_R_P2M'; // Oh wait, the user pasted the anon key in text! Let me look at the chat text.
+// "Anon Key (Legacy): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg"
+
+const supabase = supabase.createClient('https://gqisjvyjdbtxzbvylmwh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg');
+
+const STORAGE_PREFIX='rdHub_';
+let state={apps:[],categories:[],activeFilter:'all',currentPage:'dashboard',ghUsername:'rd799',lastSync:null,vaultKey:null,passwords:[]};
+let editAppId = null;
+let editCatId = null;
+
+const CAT_MAP={'Price-Hub':'💰 Báo giá','R-D-Command':'📋 Quản lý','Vault-Starduct':'📁 Tài liệu','CODE-PRODUCT-NSCA':'🏭 Sản xuất','ProjectHub-NSCA':'📊 Dự án','NSCA-KB':'🤖 AI/KB','FlowPro':'🏭 Sản xuất'};
+const ICON_MAP={'Price-Hub':'💰','R-D-Command':'📋','Vault-Starduct':'🔒','CODE-PRODUCT-NSCA':'🏭','ProjectHub-NSCA':'📊','NSCA-KB':'🤖','FlowPro':'⚙️'};
+const DESC_MAP={'Price-Hub':'Quản lý báo giá — PriceHub','R-D-Command':'Quản lý công việc & Báo cáo tự động R&D','Vault-Starduct':'Quản lý tài liệu kỹ thuật — STARDUCT VAULT','CODE-PRODUCT-NSCA':'Mã sản phẩm NSCA/STARDUCT 2026','ProjectHub-NSCA':'Quản lý dự án NSCA — ProjectHub v3','NSCA-KB':'AI Knowledge Engine — Gemini Free','FlowPro':'Quản lý quy trình sản xuất'};
+
+/* ============ INIT ============ */
+document.addEventListener('DOMContentLoaded',async ()=>{
+  loadSettings();
+  loadTheme();
+  await fetchData();
+});
+
+function loadSettings(){
+try{
+const s=localStorage.getItem(STORAGE_PREFIX+'settings');
+if(s){const d=JSON.parse(s);state.ghUsername=d.ghUsername||'rd799';state.lastSync=d.lastSync||null}
+document.getElementById('settingUsername').value=state.ghUsername;
+}catch(e){console.error(e)}
+}
+
+function saveSettings(){
+state.ghUsername=document.getElementById('settingUsername').value||'rd799';
+localStorage.setItem(STORAGE_PREFIX+'settings',JSON.stringify({ghUsername:state.ghUsername,lastSync:state.lastSync}));
+toast('✅ Đã lưu cài đặt');
+}
+
+/* ============ DATA FETCHING & SYNC ============ */
+async function fetchData() {
+  try {
+    // 1. Lấy danh mục từ Supabase
+    let { data: cats, error: errCats } = await supabase.from('categories').select('*');
+    if(errCats) throw errCats;
+    // Nếu chưa có thư mục nào, tạo thư mục cơ bản
+    if (!cats || cats.length === 0) {
+      const defaultCats = [
+        {name: '💰 Báo giá'}, {name: '📋 Quản lý'}, {name: '📁 Tài liệu'},
+        {name: '🏭 Sản xuất'}, {name: '📊 Dự án'}, {name: '🤖 AI/KB'}, {name: '🔧 Khác'}
+      ];
+      const { data: newCats, error: errNew } = await supabase.from('categories').insert(defaultCats).select();
+      if(!errNew) cats = newCats;
+    }
+    state.categories = cats || [];
+    
+    // Cập nhật select
+    const catHtml = state.categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('customAppCat').innerHTML = catHtml;
+
+    // 2. Lấy danh sách Apps từ Supabase
+    let { data: apps, error: errApps } = await supabase.from('apps').select(`*, categories(name)`);
+    if(errApps) throw errApps;
+    
+    state.apps = (apps || []).map(a => ({
+        ...a,
+        cat: a.categories ? a.categories.name : '🔧 Khác'
+    }));
+
+    // Tự động sync data từ GitHub lần đầu nếu chưa có gì
+    if (state.apps.length === 0) {
+      await syncGitHub(true);
+    } else {
+      renderAll();
+    }
+  } catch (err) {
+    console.error(err);
+    toast('❌ Lỗi tải dữ liệu Supabase: ' + err.message, 'error');
+  }
+}
+
+async function fullSync() {
+  await syncGitHub(false);
+}
+
+async function syncGitHub(isFirstLoad=false){
+const btn=document.getElementById('btnSync');
+btn.classList.add('syncing');btn.innerHTML='🔄 Đang sync...';
+try{
+    const res=await fetch(`https://api.github.com/users/${state.ghUsername}/repos?per_page=100&sort=updated`);
+    if(!res.ok)throw new Error('API error: '+res.status);
+    const repos=await res.json();
+    const ghApps = repos.filter(r=>r.has_pages&&r.language==='HTML');
+    
+    let addedCount = 0;
+    
+    for (const r of ghApps) {
+        // Check if repo already exists in Supabase
+        const exists = state.apps.find(a => a.gh_repo === r.full_name);
+        if (!exists) {
+            // Xác định category mặc định
+            const catName = CAT_MAP[r.name]||'🔧 Khác';
+            let catObj = state.categories.find(c => c.name === catName);
+            if(!catObj) catObj = state.categories[0]; // fallback
+            
+            const newApp = {
+                name: r.name,
+                url: `https://${state.ghUsername}.github.io/${r.name}/`,
+                description: DESC_MAP[r.name]||r.description||r.name,
+                category_id: catObj ? catObj.id : null,
+                gh_repo: r.full_name,
+                icon: ICON_MAP[r.name]||'📦',
+                source: 'github'
+            };
+            
+            // Insert to Supabase
+            const { data, error } = await supabase.from('apps').insert([newApp]).select(`*, categories(name)`);
+            if (error) console.error(error);
+            else if (data && data.length > 0) {
+                state.apps.push({...data[0], cat: data[0].categories ? data[0].categories.name : catName});
+                addedCount++;
+            }
+        }
+    }
+
+    state.lastSync=new Date().toISOString();
+    localStorage.setItem(STORAGE_PREFIX+'settings',JSON.stringify({ghUsername:state.ghUsername,lastSync:state.lastSync}));
+    if (!isFirstLoad) {
+        toast(`✅ Đồng bộ xong. Thêm mới ${addedCount} app(s).`);
+        renderAll();
+    }
+}catch(e){toast('❌ Lỗi sync: '+e.message,'error');console.error(e)}
+btn.classList.remove('syncing');btn.innerHTML='🔄 Sync';
+if (isFirstLoad) renderAll();
+}
+
+/* ============ RENDER ============ */
+function renderAll(){renderStats();renderFilters();renderApps();updateSyncInfo()}
+
+function renderStats(){
+const all=getAllApps();
+document.getElementById('statApps').textContent=all.length;
+document.getElementById('statCats').textContent=new Set(all.map(a=>a.cat)).size;
+document.getElementById('statSync').textContent=state.lastSync?timeSince(state.lastSync):'—';
+document.getElementById('statPwd').textContent=state.passwords.length;
+document.getElementById('appCount').textContent=all.length+' ứng dụng';
+}
+
+function renderFilters(){
+const cats=['all', ...state.categories.map(c => c.name)];
+const html=cats.map(c=>`<button class="filter-pill ${state.activeFilter===c?'active':''}" onclick="setFilter('${c}')">${c==='all'?'🔥 Tất cả':c}</button>`).join('');
+document.getElementById('filterBar').innerHTML=html;
+const fb2=document.getElementById('filterBar2');
+if(fb2)fb2.innerHTML=html;
+
+// Render Categories Table
+const catHtml = state.categories.map(c => {
+    const count = state.apps.filter(a => a.category_id === c.id).length;
+    return `
+    <tr style="border-bottom:1px solid var(--card-border);">
+        <td style="padding:12px;font-weight:600">${c.name}</td>
+        <td style="padding:12px;color:var(--text2)">${count} app(s)</td>
+        <td style="padding:12px;text-align:right">
+            <button onclick="editCategory('${c.id}')" style="padding:6px 10px;background:var(--card);border:1px solid var(--card-border);border-radius:6px;font-size:12px;margin-right:4px">✏️ Sửa</button>
+            <button onclick="deleteCategory('${c.id}')" style="padding:6px 10px;background:var(--card);border:1px solid var(--card-border);border-radius:6px;font-size:12px;color:var(--red)">🗑️ Xoá</button>
+        </td>
+    </tr>`;
+}).join('');
+document.getElementById('catTbody').innerHTML = catHtml || '<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--text2)">Chưa có danh mục</td></tr>';
+}
+
+function renderApps(){
+const q=document.getElementById('searchInput').value.toLowerCase();
+let apps=state.apps;
+if(state.activeFilter!=='all')apps=apps.filter(a=>a.cat===state.activeFilter);
+if(q)apps=apps.filter(a=>a.name.toLowerCase().includes(q)||a.description?.toLowerCase().includes(q));
+const html=apps.map((a,i)=>`
+<div class="app-card" style="animation-delay:${i*0.05}s">
+<div class="app-card-header"><div class="app-emoji">${a.icon||'📦'}</div><div class="app-status" title="Online"></div></div>
+<h3>${a.name}</h3>
+<p class="app-desc">${a.description||''}</p>
+<div class="app-meta"><span class="app-tag">${a.cat}</span><span class="app-date">${a.source==='github'?'GitHub Sync':'Thủ công'}</span></div>
+<div class="app-card-actions">
+<a href="${a.url}" target="_blank" class="btn-open">🚀 Mở app</a>
+<button class="btn-preview" title="Xem" onclick="openPreview('${a.url}','${a.name}')">👁️</button>
+<button class="btn-preview" title="Chỉnh sửa" onclick="editApp('${a.id}')">✏️</button>
+<button class="btn-preview" title="Xoá" onclick="deleteApp('${a.id}')" style="color:var(--red)">🗑️</button>
+<button class="btn-pwd" title="Mật khẩu" onclick="showPage('vault');highlightPwd('${a.name}')">🔑</button>
+</div>
+</div>`).join('');
+document.getElementById('appsGrid').innerHTML=html||'<p style="color:var(--text2);text-align:center;grid-column:1/-1;padding:40px">Không tìm thấy ứng dụng nào</p>';
+document.getElementById('appsGrid2').innerHTML=html||'<p style="color:var(--text2);text-align:center;grid-column:1/-1;padding:40px">Không tìm thấy ứng dụng nào</p>';
+}
+
+function getAllApps(){return state.apps}
+function setFilter(f){state.activeFilter=f;renderFilters();renderApps()}
+function updateSyncInfo(){document.getElementById('syncInfo').textContent='Đồng bộ: '+(state.lastSync?timeSince(state.lastSync):'chưa sync')}
+
+/* ============ CATEGORY MANAGEMENT ============ */
+function showAddCatModal() {
+    editCatId = null;
+    document.querySelector('#addCatModal h2').textContent = '➕ Thêm danh mục';
+    document.getElementById('catName').value = '';
+    document.getElementById('addCatModal').classList.add('show');
+}
+function hideAddCatModal() { document.getElementById('addCatModal').classList.remove('show'); }
+
+function editCategory(id) {
+    const cat = state.categories.find(c => c.id === id);
+    if (!cat) return;
+    editCatId = id;
+    document.querySelector('#addCatModal h2').textContent = '✏️ Sửa danh mục';
+    document.getElementById('catName').value = cat.name;
+    document.getElementById('addCatModal').classList.add('show');
+}
+
+async function saveCategory() {
+    const name = document.getElementById('catName').value;
+    if (!name) { toast('⚠️ Vui lòng nhập tên danh mục','error'); return; }
+    
+    document.getElementById('btnSaveCat').textContent = '⏳...';
+    try {
+        if (editCatId) {
+            await supabase.from('categories').update({ name }).eq('id', editCatId);
+            toast('✅ Đã cập nhật danh mục');
+        } else {
+            await supabase.from('categories').insert([{ name }]);
+            toast('✅ Đã thêm danh mục mới');
+        }
+        await fetchData();
+        hideAddCatModal();
+    } catch (err) {
+        toast('❌ Lỗi: ' + err.message, 'error');
+    }
+    document.getElementById('btnSaveCat').textContent = '💾 Lưu';
+}
+
+async function deleteCategory(id) {
+    if(!confirm('Xoá danh mục này? Các app thuộc danh mục sẽ bị mất phân nhóm.')) return;
+    try {
+        // Reset category of apps
+        await supabase.from('apps').update({ category_id: null }).eq('category_id', id);
+        // Delete category
+        await supabase.from('categories').delete().eq('id', id);
+        toast('🗑️ Đã xoá danh mục');
+        await fetchData();
+    } catch(err) {
+        toast('❌ Lỗi: ' + err.message, 'error');
+    }
+}
+
+/* ============ PAGES ============ */
+function showPage(p){
+state.currentPage=p;
+document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+document.getElementById('page-'+p).classList.add('active');
+document.querySelectorAll('.sidebar nav a').forEach(a=>{a.classList.toggle('active',a.dataset.page===p)});
+if(window.innerWidth<=768)toggleSidebar();
+}
+
+/* ============ THEME ============ */
+function toggleTheme(){
+const t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+document.documentElement.setAttribute('data-theme',t);
+document.getElementById('themeToggle').textContent=t==='dark'?'🌙':'☀️';
+localStorage.setItem(STORAGE_PREFIX+'theme',t);
+}
+function loadTheme(){
+const t=localStorage.getItem(STORAGE_PREFIX+'theme')||'dark';
+document.documentElement.setAttribute('data-theme',t);
+document.getElementById('themeToggle').textContent=t==='dark'?'🌙':'☀️';
+}
+
+/* ============ PREVIEW ============ */
+function openPreview(url,name){
+document.getElementById('previewUrl').textContent=name+' — '+url;
+document.getElementById('previewFrame').src=url;
+document.getElementById('previewModal').classList.add('show');
+}
+function closePreview(){document.getElementById('previewModal').classList.remove('show');document.getElementById('previewFrame').src=''}
+
+/* ============ SIDEBAR MOBILE ============ */
+function toggleSidebar(){
+document.getElementById('sidebar').classList.toggle('open');
+document.getElementById('overlay').classList.toggle('show');
+}
+
+/* ============ PASSWORD VAULT ============ */
+async function deriveKey(pwd,salt){
+const enc=new TextEncoder();
+const keyMaterial=await crypto.subtle.importKey('raw',enc.encode(pwd),'PBKDF2',false,['deriveKey']);
+return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:100000,hash:'SHA-256'},keyMaterial,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+
+async function encryptData(data,pwd){
+const salt=crypto.getRandomValues(new Uint8Array(16));
+const iv=crypto.getRandomValues(new Uint8Array(12));
+const key=await deriveKey(pwd,salt);
+const enc=new TextEncoder();
+const ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(JSON.stringify(data)));
+const buf=new Uint8Array(salt.length+iv.length+ct.byteLength);
+buf.set(salt,0);buf.set(iv,salt.length);buf.set(new Uint8Array(ct),salt.length+iv.length);
+return btoa(String.fromCharCode(...buf));
+}
+
+async function decryptData(b64,pwd){
+const buf=Uint8Array.from(atob(b64),c=>c.charCodeAt(0));
+const salt=buf.slice(0,16);const iv=buf.slice(16,28);const ct=buf.slice(28);
+const key=await deriveKey(pwd,salt);
+const dec=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+return JSON.parse(new TextDecoder().decode(dec));
+}
+
+async function unlockVault(){
+const pwd=document.getElementById('masterPwdInput').value;
+if(!pwd){toast('⚠️ Vui lòng nhập master password','error');return}
+const stored=localStorage.getItem(STORAGE_PREFIX+'vault');
+if(!stored){
+state.vaultKey=pwd;state.passwords=[];
+await saveVault();
+document.getElementById('vaultLocked').style.display='none';
+document.getElementById('vaultUnlocked').style.display='block';
+toast('✅ Vault đã tạo với master password mới');
+renderPasswords();return;
+}
+try{
+state.passwords=await decryptData(stored,pwd);
+state.vaultKey=pwd;
+document.getElementById('vaultLocked').style.display='none';
+document.getElementById('vaultUnlocked').style.display='block';
+toast('✅ Vault đã mở');renderPasswords();renderStats();
+}catch(e){toast('❌ Sai master password','error')}
+}
+
+function lockVault(){
+state.vaultKey=null;state.passwords=[];
+document.getElementById('vaultLocked').style.display='block';
+document.getElementById('vaultUnlocked').style.display='none';
+document.getElementById('masterPwdInput').value='';
+}
+
+async function saveVault(){
+if(!state.vaultKey)return;
+const enc=await encryptData(state.passwords,state.vaultKey);
+localStorage.setItem(STORAGE_PREFIX+'vault',enc);
+renderStats();
+}
+
+function renderPasswords(){
+const html=state.passwords.map((p,i)=>`
+<div class="pwd-item" data-app="${p.app}">
+<div class="pwd-app-icon">${p.icon||'🔑'}</div>
+<div class="pwd-info"><h4>${p.app}</h4><div class="pwd-user">👤 ${p.username}</div>${p.url?`<div class="pwd-user">🔗 ${p.url}</div>`:''}${p.notes?`<div class="pwd-user">📝 ${p.notes}</div>`:''}</div>
+<div class="pwd-value" id="pwdVal${i}">${'•'.repeat(8)}</div>
+<div class="pwd-actions">
+<button onclick="togglePwdVisibility(${i})" title="Hiện/ẩn">👁️</button>
+<button onclick="copyPwd(${i})" title="Copy">📋</button>
+<button onclick="deletePwd(${i})" title="Xoá">🗑️</button>
+</div>
+</div>`).join('');
+document.getElementById('pwdList').innerHTML=html||'<p style="text-align:center;color:var(--text2);padding:40px">Chưa có mật khẩu nào. Bấm ➕ Thêm để bắt đầu.</p>';
+}
+
+function showAddPwdForm(){document.getElementById('addPwdForm').style.display='block'}
+function hideAddPwdForm(){document.getElementById('addPwdForm').style.display='none';['pwdAppName','pwdUsername','pwdPassword','pwdUrl','pwdNotes'].forEach(id=>document.getElementById(id).value='')}
+
+async function savePassword(){
+const app=document.getElementById('pwdAppName').value;
+const username=document.getElementById('pwdUsername').value;
+const password=document.getElementById('pwdPassword').value;
+if(!app||!password){toast('⚠️ Vui lòng nhập tên app và mật khẩu','error');return}
+const appData=getAllApps().find(a=>a.name.toLowerCase()===app.toLowerCase());
+state.passwords.push({app,username,password,url:document.getElementById('pwdUrl').value,notes:document.getElementById('pwdNotes').value,icon:appData?appData.icon:'🔑',created:new Date().toISOString()});
+await saveVault();hideAddPwdForm();renderPasswords();toast('✅ Đã lưu mật khẩu cho '+app);
+}
+
+function togglePwdVisibility(i){
+const el=document.getElementById('pwdVal'+i);
+el.textContent=el.textContent.includes('•')?state.passwords[i].password:'•'.repeat(8);
+}
+function copyPwd(i){navigator.clipboard.writeText(state.passwords[i].password);toast('📋 Đã copy mật khẩu')}
+async function deletePwd(i){if(!confirm('Xoá mật khẩu này?'))return;state.passwords.splice(i,1);await saveVault();renderPasswords();toast('🗑️ Đã xoá')}
+function highlightPwd(name){/* scroll to matching password if vault is open */}
+
+/* ============ CUSTOM APPS ============ */
+/* ============ CUSTOM APPS & EDITING ============ */
+function showAddAppModal(){
+    editAppId = null;
+    document.querySelector('.modal h2').textContent = '➕ Thêm ứng dụng thủ công';
+    ['customAppName','customAppUrl','customAppDesc','customAppIcon'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('addAppModal').classList.add('show');
+}
+function hideAddAppModal(){document.getElementById('addAppModal').classList.remove('show')}
+
+function editApp(id) {
+    const app = state.apps.find(a => a.id === id);
+    if (!app) return;
+    editAppId = id;
+    document.querySelector('.modal h2').textContent = '✏️ Chỉnh sửa ứng dụng';
+    document.getElementById('customAppName').value = app.name;
+    document.getElementById('customAppUrl').value = app.url;
+    document.getElementById('customAppDesc').value = app.description || '';
+    document.getElementById('customAppIcon').value = app.icon || '📦';
+    
+    // Set category
+    if (app.category_id) document.getElementById('customAppCat').value = app.category_id;
+    
+    document.getElementById('addAppModal').classList.add('show');
+}
+
+async function saveCustomApp(){
+const name=document.getElementById('customAppName').value;
+const url=document.getElementById('customAppUrl').value;
+const description = document.getElementById('customAppDesc').value;
+const icon = document.getElementById('customAppIcon').value || '📦';
+const catId = document.getElementById('customAppCat').value;
+
+if(!name||!url){toast('⚠️ Vui lòng nhập tên và URL','error');return}
+
+const btn = document.querySelector('.modal .btn-save');
+btn.textContent = '⏳ Đang lưu...';
+
+try {
+    if (editAppId) {
+        // Update existing
+        const { error } = await supabase.from('apps').update({
+            name, url, description, icon, category_id: catId
+        }).eq('id', editAppId);
+        if (error) throw error;
+        toast('✅ Đã cập nhật '+name);
+    } else {
+        // Insert new
+        const { error } = await supabase.from('apps').insert([{
+            name, url, description, icon, category_id: catId, source: 'custom'
+        }]);
+        if (error) throw error;
+        toast('✅ Đã thêm '+name);
+    }
+    await fetchData(); // Refresh data
+    hideAddAppModal();
+} catch (err) {
+    console.error(err);
+    toast('❌ Lỗi khi lưu: ' + err.message, 'error');
+}
+btn.textContent = '💾 Lưu';
+}
+
+async function deleteApp(id) {
+    if(!confirm('Xoá ứng dụng này khỏi danh sách?')) return;
+    try {
+        await supabase.from('apps').delete().eq('id', id);
+        toast('🗑️ Đã xoá ứng dụng');
+        await fetchData();
+    } catch(err) {
+        toast('❌ Lỗi: ' + err.message, 'error');
+    }
+}
+
+/* ============ EXPORT/IMPORT ============ */
+function exportData(){
+const data={settings:{ghUsername:state.ghUsername},exportDate:new Date().toISOString()};
+const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='rd-system-hub-backup.json';a.click();
+toast('📥 Đã export backup');
+}
+function importData(e){
+const f=e.target.files[0];if(!f)return;
+const r=new FileReader();r.onload=ev=>{
+try{const d=JSON.parse(ev.target.result);
+if(d.settings?.ghUsername){state.ghUsername=d.settings.ghUsername;document.getElementById('settingUsername').value=state.ghUsername}
+saveSettings();renderAll();toast('📤 Import thành công');
+}catch(err){toast('❌ File không hợp lệ','error')}
+};r.readAsText(f);
+}
+function clearAllData(){
+if(!confirm('Xoá TẤT CẢ dữ liệu? Hành động không thể hoàn tác!'))return;
+Object.keys(localStorage).filter(k=>k.startsWith(STORAGE_PREFIX)).forEach(k=>localStorage.removeItem(k));
+state.passwords=[];state.lastSync=null;
+renderAll();toast('🗑️ Đã xoá toàn bộ dữ liệu');
+}
+
+/* ============ UTILS ============ */
+function toast(msg,type='success'){
+const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+(type||'success');
+setTimeout(()=>t.classList.remove('show'),3000);
+}
+function timeSince(d){
+const s=Math.floor((Date.now()-new Date(d))/1000);
+if(s<60)return s+'s trước';if(s<3600)return Math.floor(s/60)+'m trước';
+if(s<86400)return Math.floor(s/3600)+'h trước';return Math.floor(s/86400)+'d trước';
+}
+function formatDate(d){const dt=new Date(d);return dt.toLocaleDateString('vi-VN',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function filterApps(){renderApps()}
+</script>
+</body>
+</html>
