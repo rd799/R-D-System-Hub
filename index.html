@@ -332,16 +332,16 @@ const s_url = 'https://gqisjvyjdbtxzbvylmwh.supabase.co';
 const s_anon='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzEzMTcyNjMyLCJleHAiOjIwMjg3NDg2MzJ9.y9D8C-V-_f-9-s-O-V-G-v-x_B-X-t-F_a_Z_Q_R_P2M'; // Oh wait, the user pasted the anon key in text! Let me look at the chat text.
 // "Anon Key (Legacy): eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg"
 
-const supabaseClient = supabase.createClient('https://gqisjvyjdbtxzbvylmwh.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxaXNqdmJ5amRidHh6YnZ5bG13aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzM1ODIyOTkxLCJleHAiOjIwNTE0MDAxOTF9.bpNSJJBA_DXfLyLeb7Q3ywcRcq5qeKNnhQTdKMUQ-fg');
+const supabaseClient = supabase.createClient('https://gqisjvyjdbtxzbvylmwh.supabase.co', 'sb_publishable_Wr5uZh3hLVOQIPymHrOV-w_NqxfcnBs');
 
 const STORAGE_PREFIX='rdHub_';
 let state={apps:[],categories:[],activeFilter:'all',currentPage:'dashboard',ghUsername:'rd799',lastSync:null,vaultKey:null,passwords:[]};
 let editAppId = null;
 let editCatId = null;
 
-const CAT_MAP={'Price-Hub':'💰 Báo giá','R-D-Command':'📋 Quản lý','Vault-Starduct':'📁 Tài liệu','CODE-PRODUCT-NSCA':'🏭 Sản xuất','ProjectHub-NSCA':'📊 Dự án','NSCA-KB':'🤖 AI/KB','FlowPro':'🏭 Sản xuất'};
-const ICON_MAP={'Price-Hub':'💰','R-D-Command':'📋','Vault-Starduct':'🔒','CODE-PRODUCT-NSCA':'🏭','ProjectHub-NSCA':'📊','NSCA-KB':'🤖','FlowPro':'⚙️'};
-const DESC_MAP={'Price-Hub':'Quản lý báo giá — PriceHub','R-D-Command':'Quản lý công việc & Báo cáo tự động R&D','Vault-Starduct':'Quản lý tài liệu kỹ thuật — STARDUCT VAULT','CODE-PRODUCT-NSCA':'Mã sản phẩm NSCA/STARDUCT 2026','ProjectHub-NSCA':'Quản lý dự án NSCA — ProjectHub v3','NSCA-KB':'AI Knowledge Engine — Gemini Free','FlowPro':'Quản lý quy trình sản xuất'};
+const CAT_MAP={'Price-Hub':'💰 Báo giá','R-D-Command':'📋 Quản lý','Vault-Starduct':'📁 Tài liệu','CODE-PRODUCT-NSCA':'🏭 Sản xuất','ProjectHub-NSCA':'📊 Dự án','NSCA-KB':'🤖 AI/KB','FlowPro':'🏭 Sản xuất','R-D-System-Hub':'📋 Quản lý'};
+const ICON_MAP={'Price-Hub':'💰','R-D-Command':'📋','Vault-Starduct':'🔒','CODE-PRODUCT-NSCA':'🏭','ProjectHub-NSCA':'📊','NSCA-KB':'🤖','FlowPro':'⚙️','R-D-System-Hub':'⚡'};
+const DESC_MAP={'Price-Hub':'Quản lý báo giá — PriceHub','R-D-Command':'Quản lý công việc & Báo cáo tự động R&D','Vault-Starduct':'Quản lý tài liệu kỹ thuật — STARDUCT VAULT','CODE-PRODUCT-NSCA':'Mã sản phẩm NSCA/STARDUCT 2026','ProjectHub-NSCA':'Quản lý dự án NSCA — ProjectHub v3','NSCA-KB':'AI Knowledge Engine — Gemini Free','FlowPro':'Quản lý quy trình sản xuất','R-D-System-Hub':'Quản lý hệ thống Dashboard tập trung'};
 
 /* ============ INIT ============ */
 document.addEventListener('DOMContentLoaded',async ()=>{
@@ -399,10 +399,20 @@ async function fetchData() {
       await syncGitHub(true);
     } else {
       renderAll();
+      // Ngầm tự động đồng bộ để cập nhật app mới nhất từ GitHub vào hệ thống
+      syncGitHub(true);
     }
   } catch (err) {
     console.error(err);
     toast('❌ Lỗi tải dữ liệu Supabase: ' + err.message, 'error');
+    
+    // Đảm bảo giao diện vẫn render được khung cơ bản khi mất kết nối DB
+    renderAll();
+    
+    // Nếu hoàn toàn không có dữ liệu, thử fetch trực tiếp từ GitHub để hiện tạm
+    if (state.apps.length === 0) {
+        syncGitHub(true);
+    }
   }
 }
 
@@ -442,7 +452,12 @@ try{
             
             // Insert to Supabase
             const { data, error } = await supabaseClient.from('apps').insert([newApp]).select(`*, categories(name)`);
-            if (error) console.error(error);
+            if (error) {
+                console.error('Không lưu được vào DB:', error.message);
+                // Fallback: hiển thị trên web dù DB lỗi
+                state.apps.push({...newApp, id: 'temp_'+Math.random(), cat: catName});
+                addedCount++;
+            }
             else if (data && data.length > 0) {
                 state.apps.push({...data[0], cat: data[0].categories ? data[0].categories.name : catName});
                 addedCount++;
